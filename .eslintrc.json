@@ -11,6 +11,7 @@
         "ecmaVersion": 11
     },
     "rules": {
-        "indent": ["warn", 4]
+        "indent": ["warn", 4],
+        "no-underscore-dangle": "off"
     }
 }
