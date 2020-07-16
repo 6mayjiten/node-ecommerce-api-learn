@@ -5,6 +5,8 @@ const logger = require('morgan');
 const cors = require('cors');
 // Import the mongoose module
 const mongoose = require('mongoose');
+// eslint-disable-next-line no-unused-vars
+const model = require('./models');
 const config = require('./config.js');
 const indexRouter = require('./routes/index');
 
