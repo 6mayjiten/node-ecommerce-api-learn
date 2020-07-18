@@ -2,15 +2,21 @@ const sgMail = require('@sendgrid/mail');
 const config = require('../config');
 
 module.exports = {
-    sendMail: (to, subject, text, html = '') => {
-        sgMail.setApiKey(config.SENDGRID_API_KEY);
+    sendMail: (to, subject, text, html) => {
+        const txtMsg = 'hello';
+        sgMail.setApiKey(config.sendgridApiKey);
         const msg = {
             to,
-            from: 'Ecommerce Team',
+            from: 'Ecommerce Team <6mayjitenshahi@gmail.com>',
             subject,
-            text,
+            text: txtMsg,
             html,
         };
-        sgMail.send(msg);
+
+        sgMail.send(msg).then((result) => {
+            console.log(`${result}`);
+        }, (err) => {
+            console.error(err);
+        });
     },
 };
