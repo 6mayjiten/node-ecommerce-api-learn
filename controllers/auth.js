@@ -1,17 +1,15 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const db = require('../models');
 const config = require('../config'); // get our config file
+const userController = require('./user');
 
 module.exports = {
-    login: (req, res) => {
+    login: async (req, res) => {
         if (!req.body.email || !req.body.password) {
             return res.status(400).json({ error: true, message: 'Email or Password are missing.' });
         }
-        db.Users.findOne({ email: req.body.email }, (err, user) => {
-            if (err) return res.status(500).json({ error: true, message: 'Something went wrong.' });
-            if (!user) return res.status(404).json({ error: true, message: "User doesn't exist." });
-
+        const user = await userController.getUserByEmaill(req, res);
+        if (user) {
             const passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
             if (!passwordIsValid) return res.status(401).json({ error: true, message: 'Wrong password.' });
 
@@ -23,11 +21,10 @@ module.exports = {
                 id: user._id,
             };
             return res.status(200).json({ auth: true, token, userInfo });
-        });
+        }
         return res.status(500).json({ error: true, message: 'Something went wrong.' });
     },
-
-    verifyToken: (req, res) => {
+    isValidToken: (req, res) => {
         if (!req.body.token) {
             return res.status(403).json({ error: true, message: 'No token provided.' });
         }
@@ -37,6 +34,6 @@ module.exports = {
             }
             return res.status(200).json({ auth: true, message: 'authenticated successfully.' });
         });
-        return res.status(500).json({ auth: false, message: 'something went wrong.' });
+        return res.status(500).json({ auth: false, message: 'Something went wrong.' });
     },
 };
