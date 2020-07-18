@@ -2,6 +2,7 @@
     "env": {
         "browser": true,
         "commonjs": true,
+        "es6": true,
         "es2020": true
     },
     "extends": [
@@ -11,7 +12,12 @@
         "ecmaVersion": 11
     },
     "rules": {
-        "indent": ["warn", 4],
-        "no-underscore-dangle": "off"
+        "indent": ["error", 4],
+        "no-underscore-dangle": "off",
+        "no-else-return": "off",
+        "func-names": ["error", "as-needed", { "generators": "as-needed" }],
+        "func-style": 0,
+        "class-methods-use-this": "off",
+        "consistent-return": "off"
     }
 }
