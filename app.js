@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 const model = require('./models');
 const config = require('./config.js');
 const indexRouter = require('./routes/index');
+const HTTPCodes = require('./helpers/httpStatusCodes');
 
 const app = express();
 
@@ -36,7 +37,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(expressSession({
-    secret: 'sadska;@!#*%?jsaMQPNFBCXU$#^&&(()>?<+',
+    secret: config.secret,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -50,7 +51,7 @@ app.use(cors(
         origin: '*',
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
         preflightContinue: false,
-        optionsSuccessStatus: 204,
+        optionsSuccessStatus: HTTPCodes.NoContentCode,
     },
 ));
 app.use('/api', (req, res, next) => {
@@ -62,7 +63,7 @@ app.use('/api', (req, res, next) => {
 
 // catch 404 and forward to error handler
 app.use((req, res) => {
-    res.status(404);
+    res.status(HTTPCodes.NotFoundCode);
     // respond with json
     if (req.accepts('json')) {
         return res.send({ error: 'Not Found' });

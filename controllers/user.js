@@ -1,8 +1,11 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { oneLine } = require('common-tags');
 const db = require('../models');
 const config = require('../config');
 const email = require('../helpers/sendgrid');
+const HTTPCodes = require('../helpers/httpStatusCodes');
+const responseMessage = require('../helpers/responseMessage');
 
 class User {
     constructor() {
@@ -14,16 +17,25 @@ class User {
     static async register(req, res) {
         if (!req.body.email || !req.body.password || !req.body.confirm_password
             || !req.body.first_name) {
-            return res.status(400).json({ error: true, message: 'email, password, confirm_password or first_name parameters are missing.' });
+            return res.status(HTTPCodes.BadRequestCode).json(
+                responseMessage.createErrorMessage(oneLine`email, password, confirm_password or
+                first_name parameters are missing.`),
+            );
         }
         if (req.body.password.length < 8) {
-            return res.status(400).json({ error: true, message: 'password length must be 8.' });
+            return res.status(HTTPCodes.BadRequestCode).json(
+                responseMessage.createErrorMessage('password length must be 8.'),
+            );
         } else if (req.body.password !== req.body.confirm_password) {
-            return res.status(400).json({ error: true, message: 'password and confirm_password doesn\'t match' });
+            return res.status(HTTPCodes.BadRequestCode).json(
+                responseMessage.createErrorMessage('password and confirm_password doesn\'t match'),
+            );
         }
         const userData = await this.getUserByEmail(req, res);
         if (userData) {
-            return res.status(200).json({ error: true, message: 'User already exist.' });
+            return res.status(HTTPCodes.SuccessRequestCode).json(
+                responseMessage.createErrorMessage('User already exist.'),
+            );
         }
 
         const hashedPassword = bcrypt.hashSync(req.body.password, 8);
@@ -36,16 +48,16 @@ class User {
             password: hashedPassword,
         }, (err, user) => {
             if (err) {
-                return res.status(500).json({
-                    error: true,
-                    message: 'There was a problem registering the user.',
-                });
+                return res.status(HTTPCodes.InternalServerErrorCode).json(
+                    responseMessage.createInternalErrorMessage(),
+                );
             }
 
             const token = jwt.sign({ id: user._id }, config.secret, {
                 expiresIn: '720h', // expires in 30 days
             }).replace(/\./g, '_');
             const activationUrl = `http://${req.get('host')}/activate/${token}`;
+
             const htmlMessage = `Hi ${user.first_name}, <br/><br/>
             Welcome to ECommerce Please Click <a href="${activationUrl}">Here</a> to activate account.
             If you are having problem please use below url in browser.<br/><br/>
@@ -53,11 +65,9 @@ class User {
             Team Ecommerce`;
 
             email.sendMail(user.email, 'Account Activation Email', '', htmlMessage);
-
-            const info = {
-                message: 'Please check your email to activate account',
-            };
-            return res.status(200).json({ success: true, info });
+            return res.status(HTTPCodes.SuccessRequestCode).json(
+                responseMessage.createSuccessMessage('Please check your email to activate account'),
+            );
         });
     }
 
@@ -65,19 +75,23 @@ class User {
         const activationToken = req.originalUrl.split('/').slice(-1)[0].replace(/_/g, '.');
         jwt.verify(activationToken, config.secret, (err, decoded) => {
             if (err) {
-                return res.status(500)
-                    .json({
-                        error: true,
-                        message: 'Failed to activate account.',
-                    });
+                return res.status(HTTPCodes.BadRequestCode).json(
+                    responseMessage.createErrorMessage('Invalid activation link!'),
+                );
             }
             db.Users.findOneAndUpdate({ _id: decoded.id }, { is_active: true }, { new: true })
                 // eslint-disable-next-line no-unused-vars
                 .exec((error, user) => {
                     if (error) {
-                        res.status(500).json({ success: true, message: 'Something wrong happen.' });
+                        res.status(HTTPCodes.InternalServerErrorCode)
+                            .json(
+                                responseMessage.createInternalErrorMessage(),
+                            );
                     }
-                    res.status(200).json({ success: true, message: 'Account activated' });
+                    res.status(HTTPCodes.SuccessRequestCode)
+                        .json(
+                            responseMessage.createSuccessMessage('Account activated'),
+                        );
                 });
         });
     }
@@ -85,9 +99,13 @@ class User {
     static async userProfile(req, res) {
         const user = await this.getUserById(req);
         if (user) {
-            res.status(200).json({ success: true, user });
+            res.status(HTTPCodes.SuccessRequestCode).json(
+                responseMessage.createSuccessMessage({ user }),
+            );
         } else {
-            res.status(500).json({ error: true, message: 'Something went wrong' });
+            res.status(HTTPCodes.InternalServerErrorCode).json(
+                responseMessage.createInternalErrorMessage(),
+            );
         }
         return null;
     }
@@ -113,7 +131,9 @@ class User {
     static async getUserByEmail(req, res) {
         return new Promise((resolve, reject) => {
             if (!req.body.email) {
-                res.status(400).json({ error: true, message: 'email parameters is missing.' });
+                res.status(HTTPCodes.BadRequestCode).json(
+                    responseMessage.createErrorMessage('email parameters is missing.'),
+                );
             }
             // lean() to make response normal javascript object rather than mongoose document
             db.Users.findOne({ email: req.body.email }, { __v: 0 }).lean()
