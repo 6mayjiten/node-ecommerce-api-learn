@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const expressSession = require('express-session');
 const logger = require('morgan');
 const cors = require('cors');
 // Import the mongoose module
@@ -34,6 +35,14 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(expressSession({
+    secret: 'sadska;@!#*%?jsaMQPNFBCXU$#^&&(()>?<+',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        path: '/', httpOnly: true, secure: false, maxAge: null,
+    },
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors(
@@ -44,7 +53,12 @@ app.use(cors(
         optionsSuccessStatus: 204,
     },
 ));
-app.use('/api', indexRouter);
+app.use('/api', (req, res, next) => {
+    if (!req.session.user_session) {
+        req.session.user_session = req.session.id;
+    }
+    return next();
+}, indexRouter);
 
 // catch 404 and forward to error handler
 app.use((req, res) => {
