@@ -3,12 +3,12 @@ const jwt = require('jsonwebtoken');
 const config = require('../config'); // get our config file
 const userController = require('./user');
 
-module.exports = {
-    login: async (req, res) => {
+class AuthController {
+    async login(req, res) {
         if (!req.body.email || !req.body.password) {
             return res.status(400).json({ error: true, message: 'Email or Password are missing.' });
         }
-        const user = await userController.getUserByEmaill(req, res);
+        const user = await userController.getUserByEmail(req, res);
         if (user) {
             const passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
             if (!passwordIsValid) return res.status(401).json({ error: true, message: 'Wrong password.' });
@@ -16,24 +16,22 @@ module.exports = {
             const token = jwt.sign({ id: user._id }, config.secret, {
                 expiresIn: '720h', // expires in 30 days
             });
-            const userInfo = {
-                email: user.email,
-                id: user._id,
-            };
-            return res.status(200).json({ auth: true, token, userInfo });
+
+            delete user.password;
+            delete user._id;
+
+            return res.status(200).json({
+                success: true, auth: true, token, user,
+            });
         }
-        return res.status(500).json({ error: true, message: 'Something went wrong.' });
-    },
-    isValidToken: (req, res) => {
-        if (!req.body.token) {
-            return res.status(403).json({ error: true, message: 'No token provided.' });
+        return res.status(200).json({ error: true, message: 'User not exist.' });
+    }
+
+    async isValidToken(req, res) {
+        if (req.body.user_id) {
+            return res.status(200).json({ auth: true, message: 'valid token.' });
         }
-        jwt.verify(req.body.token, config.secret, (err) => {
-            if (err) {
-                return res.status(200).json({ auth: false, message: 'Session Expired.' });
-            }
-            return res.status(200).json({ auth: true, message: 'authenticated successfully.' });
-        });
         return res.status(500).json({ auth: false, message: 'Something went wrong.' });
-    },
-};
+    }
+}
+module.exports = new AuthController();

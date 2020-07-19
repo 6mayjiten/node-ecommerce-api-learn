@@ -9,8 +9,9 @@ router.get('/user/activate/*', userCtrl.activate.bind(userCtrl));
 
 router.post('/user/register', userCtrl.register.bind(userCtrl));
 router.post('/user/login', authCtrl.login);
-router.post('/validateToken', authCtrl.isValidToken);
 
-router.get('/user/user-profile', middleware, userCtrl.getUserById);
+router.get('/user/user-profile', middleware.verifyToken, userCtrl.userProfile.bind(userCtrl));
+
+router.post('/validate-token', middleware.verifyToken, authCtrl.isValidToken);
 
 module.exports = router;
