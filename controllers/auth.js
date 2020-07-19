@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const config = require('../config'); // get our config file
+const config = require('../config');
 const userController = require('./user');
 
 class AuthController {

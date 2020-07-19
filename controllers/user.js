@@ -6,9 +6,9 @@ const email = require('../helpers/sendgrid');
 
 class User {
     constructor() {
-        console.log('hello user controller');
         this.register = this.register.bind(this);
         this.activate = this.activate.bind(this);
+        this.userProfile = this.userProfile.bind(this);
     }
 
     static async register(req, res) {
@@ -82,39 +82,51 @@ class User {
         });
     }
 
-    static async getUserById(req, res) {
+    static async userProfile(req, res) {
+        const user = await this.getUserById(req);
+        if (user) {
+            res.status(200).json({ success: true, user });
+        } else {
+            res.status(500).json({ error: true, message: 'Something went wrong' });
+        }
+        return null;
+    }
+
+    static async getUserById(req) {
         return new Promise((resolve, reject) => {
-            if (!req.body.user_id) {
-                return res.status(400).json({ error: true, message: 'email parameters is missing.' });
+            if (req.body.user_id) {
+                db.Users.findOne({ _id: req.body.user_id }, { _id: 0, __v: 0, password: 0 })
+                    .exec((err, user) => {
+                        if (err) {
+                            reject(new Error({
+                                error: true,
+                                message: 'Something went wrong.',
+                            }));
+                        }
+                        if (!user) resolve(null);
+                        resolve(user);
+                    });
             }
-            db.Users.findOne({ _id: req.body.user_id }).exec((err, user) => {
-                if (err) {
-                    reject(new Error({
-                        error: true,
-                        message: 'Something went wrong.',
-                    }));
-                }
-                if (!user) resolve(null);
-                resolve(user);
-            });
         });
     }
 
     static async getUserByEmail(req, res) {
         return new Promise((resolve, reject) => {
             if (!req.body.email) {
-                return res.status(400).json({ error: true, message: 'email parameters is missing.' });
+                res.status(400).json({ error: true, message: 'email parameters is missing.' });
             }
-            db.Users.findOne({ email: req.body.email }).exec((err, user) => {
-                if (err) {
-                    reject(new Error({
-                        error: true,
-                        message: 'Something went wrong.',
-                    }));
-                }
-                if (!user) resolve(null);
-                resolve(user);
-            });
+            // lean() to make response normal javascript object rather than mongoose document
+            db.Users.findOne({ email: req.body.email }, { __v: 0 }).lean()
+                .exec((err, user) => {
+                    if (err) {
+                        reject(new Error({
+                            error: true,
+                            message: 'Something went wrong.',
+                        }));
+                    }
+                    if (!user) resolve(null);
+                    resolve(user);
+                });
         });
     }
 }
