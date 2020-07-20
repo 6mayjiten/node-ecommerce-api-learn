@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 mongoose.Promise = require('promise');
 
-const cartSchema = new Schema({
+const productOrderSchema = new Schema({
     user_id: { type: String },
     session_id: { type: String },
     order_id: { type: String, required: true },
@@ -15,6 +15,6 @@ const cartSchema = new Schema({
     modified_at: { type: Date, default: Date.now() },
 });
 
-const Cart = mongoose.model('cart', cartSchema);
+const ProductOrder = mongoose.model('product_order', productOrderSchema);
 
-module.exports = Cart;
+module.exports = ProductOrder;
