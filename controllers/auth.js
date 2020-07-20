@@ -56,7 +56,7 @@ class AuthController {
     isValidToken(req, res) {
         if (req.body.user_id) {
             return res.status(HTTPCodes.SuccessRequestCode).json(
-                responseMessage.createSuccessMessage({ auth: true, message: 'Valid token!' }),
+                responseMessage.createSuccessMessage('Valid token!'),
             );
         }
         return res.status(HTTPCodes.InternalServerErrorCode).json(

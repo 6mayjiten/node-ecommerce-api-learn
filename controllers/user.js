@@ -12,15 +12,22 @@ class User {
 
     async register(req, res) {
         if (!req.body.email || !req.body.password || !req.body.confirm_password
-            || !req.body.first_name) {
+            || req.body.first_name || !req.body.last_name || !req.body.mobile_number) {
             return res.status(HTTPCodes.BadRequestCode).json(
-                responseMessage.createErrorMessage(oneLine`email, password, confirm_password or
-                first_name parameters are missing.`),
+                responseMessage.createErrorMessage(oneLine`email, password, confirm_password, first_name, last_name or
+                 mobile_number parameters are missing.`),
             );
         }
-        if (req.body.password.length < 8) {
+        if (req.body.mobile_number.length !== 10) {
             return res.status(HTTPCodes.BadRequestCode).json(
-                responseMessage.createErrorMessage('password length must be 8.'),
+                responseMessage.createErrorMessage('Mobile number should be 10 digit.'),
+            );
+        }
+        const passwordRegex = new RegExp(/^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/);
+        if (!passwordRegex.test(req.body.password)) {
+            return res.status(HTTPCodes.BadRequestCode).json(
+                responseMessage.createErrorMessage(oneLine`password length must be equal or greater than 8. 
+                Having at least 1 digit, 1 upper case letter and 1 lower case letter.`),
             );
         } else if (req.body.password !== req.body.confirm_password) {
             return res.status(HTTPCodes.BadRequestCode).json(
@@ -36,14 +43,14 @@ class User {
                     );
             }
 
-            const hashedPassword = bcrypt.hashSync(req.body.password, 8);
-            const lastName = req.body.last_name ? req.body.last_name : '';
+            const password = bcrypt.hashSync(req.body.password, 8);
 
             db.User.create({
                 first_name: req.body.first_name,
-                last_name: lastName,
                 email: req.body.email,
-                password: hashedPassword,
+                last_name: req.body.last_name,
+                mobile_number: req.body.mobile_number,
+                password,
             }, (err, user) => {
                 if (err) {
                     return res.status(HTTPCodes.InternalServerErrorCode)
@@ -87,7 +94,6 @@ class User {
                 );
             }
             db.User.findOneAndUpdate({ _id: decoded.id }, { is_active: true }, { new: true })
-                // eslint-disable-next-line no-unused-vars
                 .exec((error, user) => {
                     if (error) {
                         res.status(HTTPCodes.InternalServerErrorCode)
@@ -95,9 +101,15 @@ class User {
                                 responseMessage.createInternalErrorMessage(),
                             );
                     }
-                    res.status(HTTPCodes.SuccessRequestCode)
+                    if (user) {
+                        res.status(HTTPCodes.SuccessRequestCode)
+                            .json(
+                                responseMessage.createSuccessMessage('Account activated'),
+                            );
+                    }
+                    res.status(HTTPCodes.NotFoundCode)
                         .json(
-                            responseMessage.createSuccessMessage('Account activated'),
+                            responseMessage.createErrorMessage('User Not Found'),
                         );
                 });
         });
