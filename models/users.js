@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 
 mongoose.Promise = require('promise');
 
-const usersSchema = new Schema({
+const userSchema = new Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     first_name: { type: String, required: true },
@@ -20,6 +20,6 @@ const usersSchema = new Schema({
     modified_at: { type: Date, default: Date.now() },
 });
 
-const Users = mongoose.model('User', usersSchema);
+const User = mongoose.model('user', userSchema);
 
-module.exports = Users;
+module.exports = User;
