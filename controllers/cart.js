@@ -27,7 +27,9 @@ class Cart {
                     responseMessage.createInternalErrorMessage(),
                 );
             }
-            res.status(200).json(responseMessage.createSuccessMessage({ cart }));
+            return res.status(HTTPCodes.SuccessRequestCode).json(
+                responseMessage.createSuccessMessage({ cart }),
+            );
         });
     }
 
@@ -51,7 +53,28 @@ class Cart {
     }
 
     updateCartItems(req, res) {
-
+        let query;
+        if (req.body.user_id) {
+            query = db.Cart.findOneAndUpdate({
+                user_id: req.body.user_id,
+                product_id: req.body.product_id,
+            }, { quantity: req.body.quantity }, { new: true, __v: 0 });
+        } else if (req.session.id) {
+            query = db.Cart.findOneAndUpdate({
+                session_id: req.session.id,
+                product_id: req.body.product_id,
+            }, { quantity: req.body.quantity }, { new: true, __v: 0 });
+        }
+        query.exec((err, result) => {
+            if (err) {
+                return res.status(HTTPCodes.InternalServerErrorCode).json(
+                    responseMessage.createInternalErrorMessage(),
+                );
+            }
+            return res.status(HTTPCodes.SuccessRequestCode).json(
+                responseMessage.createSuccessMessage({ result }),
+            );
+        });
     }
 
     deleteCartItem(req, res) {
