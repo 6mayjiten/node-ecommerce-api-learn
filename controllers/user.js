@@ -126,6 +126,11 @@ class User {
     async userProfile(req, res) {
         try {
             const user = await this.getUserById(req);
+            if (!user) {
+                return res.status(HTTPCodes.SuccessRequestCode).json(
+                    responseMessage.createErrorMessage('User does\'nt exist'),
+                );
+            }
             return res.status(HTTPCodes.SuccessRequestCode)
                 .json(
                     responseMessage.createSuccessMessage({ user }),

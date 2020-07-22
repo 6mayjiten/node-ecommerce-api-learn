@@ -78,16 +78,17 @@ class Cart {
     }
 
     deleteCartItem(req, res) {
+        const productId = req.params.id;
         let query;
         if (req.body.user_id) {
             query = db.Cart.findOneAndDelete({
                 user_id: req.body.user_id,
-                product_id: req.body.product_id,
+                product_id: productId,
             }, { __v: 0 });
         } else if (req.session.id) {
             query = db.Cart.findOneAndDelete({
                 session_id: req.session.id,
-                product_id: req.body.product_id,
+                product_id: productId,
             }, { __v: 0 });
         }
         query.exec((err, result) => {
