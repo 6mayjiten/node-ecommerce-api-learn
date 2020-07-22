@@ -23,11 +23,11 @@ class User {
                 responseMessage.createErrorMessage('Mobile number should be 10 digit.'),
             );
         }
-        const passwordRegex = new RegExp(/^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])[0-9a-zA-Z]{8,}$/);
+        const passwordRegex = new RegExp(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/);
         if (!passwordRegex.test(req.body.password)) {
             return res.status(HTTPCodes.BadRequestCode).json(
-                responseMessage.createErrorMessage(oneLine`password length must be equal or greater than 8. 
-                Having at least 1 digit, 1 upper case letter and 1 lower case letter.`),
+                responseMessage.createErrorMessage(oneLine`Password at least 8 char long and must contain at least 1 digit, 
+                1 lower case and 1 upper case letter with 1 special char(!@#$%^&*).`),
             );
         } else if (req.body.password !== req.body.confirm_password) {
             return res.status(HTTPCodes.BadRequestCode).json(
@@ -86,7 +86,8 @@ class User {
     }
 
     static activateUser(req, res) {
-        const activationToken = req.originalUrl.split('/').slice(-1)[0].replace(/_/g, '.');
+        let activationToken = req.params.activationCode;
+        activationToken = activationToken ? activationToken.replace(/_/g, '.') : activationToken;
         jwt.verify(activationToken, config.secret, (err, decoded) => {
             if (err) {
                 return res.status(HTTPCodes.BadRequestCode).json(
@@ -129,6 +130,10 @@ class User {
                 );
         }
         return null;
+    }
+
+    updateUserProfile(req, res) {
+
     }
 
     getUserById(req) {
