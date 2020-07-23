@@ -1,6 +1,5 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { oneLine } = require('common-tags');
 const db = require('../models');
 const config = require('../config');
 const email = require('../helpers/sendgrid');
@@ -13,81 +12,77 @@ class User {
     }
 
     async register(req, res) {
-        if (!req.body.email || !req.body.password || !req.body.confirm_password
-            || req.body.first_name || !req.body.last_name || !req.body.mobile_number) {
-            return res.status(HTTPCodes.BadRequestCode)
-                .json(
-                    responseMessage.createErrorMessage(oneLine`email, password, confirm_password, first_name, last_name or
-                 mobile_number parameters are missing.`),
-                );
-        }
-        if (req.body.mobile_number.length !== 10) {
-            return res.status(HTTPCodes.BadRequestCode)
-                .json(
-                    responseMessage.createErrorMessage('Mobile number should be 10 digit.'),
-                );
-        }
-        const passwordRegex = new RegExp(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/);
-        if (!passwordRegex.test(req.body.password)) {
-            return res.status(HTTPCodes.BadRequestCode)
-                .json(
-                    responseMessage.createErrorMessage(oneLine`Password at least 8 char long and must contain at least 1 digit, 
-                1 lower case and 1 upper case letter with 1 special char(!@#$%^&*).`),
-                );
-        } else if (req.body.password !== req.body.confirm_password) {
-            return res.status(HTTPCodes.BadRequestCode)
-                .json(
-                    responseMessage.createErrorMessage('password and confirm_password doesn\'t match'),
-                );
-        }
+        const newUser = new db.User({
+            email: req.body.email || '',
+            password: req.body.password || '',
+            first_name: req.body.first_name || '',
+            last_name: req.body.last_name || '',
+            mobile_number: req.body.mobile_number || '',
+        });
         try {
-            const userData = await this.getUserByEmail(req, res);
-            if (userData) {
-                return res.status(HTTPCodes.SuccessRequestCode)
+            await newUser.validate();
+            if (req.body.password !== req.body.confirm_password) {
+                return res.status(HTTPCodes.BadRequestCode)
                     .json(
-                        responseMessage.createErrorMessage('User already exist.'),
+                        responseMessage.createErrorMessage('password and confirm_password doesn\'t match'),
                     );
             }
-
-            const password = bcrypt.hashSync(req.body.password, 8);
-
-            db.User.create({
-                first_name: req.body.first_name,
-                email: req.body.email,
-                last_name: req.body.last_name,
-                mobile_number: req.body.mobile_number,
-                password,
-            }, (err, user) => {
-                if (err) {
-                    return res.status(HTTPCodes.InternalServerErrorCode)
+            try {
+                const userData = await this.getUserByEmail(req, res);
+                if (userData) {
+                    return res.status(HTTPCodes.SuccessRequestCode)
                         .json(
-                            responseMessage.createInternalErrorMessage(),
+                            responseMessage.createErrorMessage('User already exist.'),
                         );
                 }
+                const password = bcrypt.hashSync(req.body.password, 8);
+                newUser.password = password;
+                db.User.create({}, (err, user) => {
+                    if (err) {
+                        return res.status(HTTPCodes.InternalServerErrorCode)
+                            .json(
+                                responseMessage.createInternalErrorMessage(),
+                            );
+                    }
 
-                const token = jwt.sign({ id: user._id }, config.secret, {
-                    expiresIn: '720h', // expires in 30 days
-                })
-                    .replace(/\./g, '_');
-                const activationUrl = `http://${req.get('host')}/activate/${token}`;
+                    const token = jwt.sign({ id: user._id }, config.secret, {
+                        expiresIn: '720h', // expires in 30 days
+                    })
+                        .replace(/\./g, '_');
+                    const activationUrl = `http://${req.get('host')}/activate/${token}`;
 
-                const htmlMessage = `Hi ${user.first_name}, <br/><br/>
+                    const htmlMessage = `Hi ${user.first_name}, <br/><br/>
                     Welcome to ECommerce Please Click <a href="${activationUrl}">Here</a> to activate account.
                     If you are having problem please use below url in browser.<br/><br/>
                     ${activationUrl}<br/><br/>Thanks,<br/>
                     Team Ecommerce`;
 
-                email.sendMail(user.email, 'Account Activation Email', '', htmlMessage);
-                return res.status(HTTPCodes.SuccessRequestCode)
+                    email.sendMail(user.email, 'Account Activation Email', '', htmlMessage);
+                    return res.status(HTTPCodes.SuccessRequestCode)
+                        .json(
+                            responseMessage.createSuccessMessage('Please check your email to activate account'),
+                        );
+                });
+            } catch (err) {
+                return res.status(HTTPCodes.InternalServerErrorCode)
                     .json(
-                        responseMessage.createSuccessMessage('Please check your email to activate account'),
+                        responseMessage.createInternalErrorMessage(),
                     );
-            });
-        } catch (e) {
-            return res.status(HTTPCodes.InternalServerErrorCode)
-                .json(
+            }
+        } catch (error) {
+            if (error.errors) {
+                const modelError = {};
+                Object.keys(error.errors).forEach((err) => {
+                    modelError[err] = error.errors[err].message;
+                });
+                return res.status(HTTPCodes.BadRequestCode).json(
+                    responseMessage.createErrorMessage(modelError),
+                );
+            } else {
+                return res.status(HTTPCodes.InternalServerErrorCode).json(
                     responseMessage.createInternalErrorMessage(),
                 );
+            }
         }
     }
 

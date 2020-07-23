@@ -24,6 +24,12 @@ class AuthController {
                             responseMessage.createErrorMessage('Wrong password.'),
                         );
                 }
+                if (!user.is_active) {
+                    return res.status(HTTPCodes.BadRequestCode)
+                        .json(
+                            responseMessage.createErrorMessage('User is not activated! Please check your email to activate account.'),
+                        );
+                }
 
                 const token = jwt.sign({ id: user._id }, config.secret, {
                     expiresIn: '720h', // expires in 30 days
